@@ -1,0 +1,4 @@
+project_id = "academy-manager"
+
+[functions.admin-reset-password]
+verify_jwt = false
