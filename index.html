@@ -518,7 +518,9 @@
       return language === "en" && i >= 0 ? translations.en.sportsEnglish[i] : value || "—";
     }
     function latestSubscription(studentId) {
-      return subscriptions.find(item => item.student_id === studentId) || null;
+      return subscriptions
+        .filter(item => item.student_id === studentId)
+        .sort((a,b) => String(b.created_at || b.start_date || "").localeCompare(String(a.created_at || a.start_date || "")))[0] || null;
     }
     function paidForSubscription(subscriptionId) {
       return payments
@@ -627,15 +629,19 @@
     }
     function validateSupabaseConfig(urlValue,keyValue) {
       try {
-        const url=new URL(urlValue);
-        const secure=url.protocol==="https:" || (sb_publishable_lOflu46tHn7ZOYw31MBmOQ_tAc0LlVR));
-        const validKey=keyValue.startsWith("sb_secret_zFUchCMisJJflN5OfGDTdQ_dpepeVjP") || keyValue.startsWith("eyJ");
-        if (!secure || !url.hostname || !validKey || /service[_-]?role|sb_secret_/i.test(keyValue)) return null;
-        if (keyValue.startsWith("eyJ")) {
-          const payload=JSON.parse(atob(keyValue.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+        const url = new URL(urlValue);
+        const key = String(keyValue || "").trim();
+        const secure = url.protocol === "https:";
+        const validPublicKey = key.startsWith("sb_publishable_") || key.startsWith("eyJ");
+        if (!secure || !url.hostname || !validPublicKey || /service[_-]?role|sb_secret_/i.test(key)) return null;
+        if (key.startsWith("eyJ")) {
+          const tokenParts = key.split(".");
+          if (tokenParts.length < 2) return null;
+          const payloadText = tokenParts[1].replace(/-/g,"+").replace(/_/g,"/");
+          const payload = JSON.parse(atob(payloadText));
           if (payload.role !== "anon") return null;
         }
-        return {url:url.origin,key:keyValue};
+        return {url:url.origin,key};
       } catch {
         return null;
       }
@@ -781,25 +787,24 @@
       }
     }
     async function initializeCloudAuth() {
-      // تم دمج بيانات مشروعك السحابي هنا لتثبيتها تلقائياً وعدم طلبها مجدداً:
-      const defaultConfig = {
-        url: "https://YOUR_PROJECT_REF.supabase.co",
-        key: "YOUR_SUPABASE_ANON_KEY"
-      };
-
+      $("authView").hidden = false;
+      $("appView").hidden = true;
       try {
-        localStorage.setItem(CLOUD_CONFIG_KEY, JSON.stringify(defaultConfig));
-        const config = defaultConfig;
-        if (!validateSupabaseConfig(config.url, config.key)) throw new Error(t("invalidConfig"));
-        $("projectUrl").value = config.url;
-        $("publicKey").value = config.key;
-        configureSupabase(config);
+        const savedConfig = JSON.parse(localStorage.getItem(CLOUD_CONFIG_KEY) || "null");
+        const config = savedConfig && validateSupabaseConfig(savedConfig.url, savedConfig.key);
+        if (config) {
+          $("projectUrl").value = config.url;
+          $("publicKey").value = config.key;
+          configureSupabase(config);
+        } else {
+          $("projectUrl").value = "";
+          $("publicKey").value = "";
+          if (savedConfig) showAuthMessage(t("invalidConfig"));
+        }
       } catch (error) {
         showAuthMessage(friendlyError(error, t("invalidConfig")));
       }
 
-      $("authView").hidden = false;
-      $("appView").hidden = true;
       refreshAuthView();
       if (!supabaseClient) return;
       try {
