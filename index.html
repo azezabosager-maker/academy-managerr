@@ -628,8 +628,8 @@
     function validateSupabaseConfig(urlValue,keyValue) {
       try {
         const url=new URL(urlValue);
-        const secure=url.protocol==="https:" || (url.protocol==="http:" && ["localhost","127.0.0.1"].includes(url.hostname));
-        const validKey=keyValue.startsWith("sb_publishable_") || keyValue.startsWith("eyJ");
+        const secure=url.protocol==="https:" || (sb_publishable_lOflu46tHn7ZOYw31MBmOQ_tAc0LlVR));
+        const validKey=keyValue.startsWith("sb_secret_zFUchCMisJJflN5OfGDTdQ_dpepeVjP") || keyValue.startsWith("eyJ");
         if (!secure || !url.hostname || !validKey || /service[_-]?role|sb_secret_/i.test(keyValue)) return null;
         if (keyValue.startsWith("eyJ")) {
           const payload=JSON.parse(atob(keyValue.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
